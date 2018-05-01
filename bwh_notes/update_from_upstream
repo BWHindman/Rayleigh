@@ -1,0 +1,11 @@
+
+To update changes made on Nick's repositories:
+
+login on some machine
+git pull
+git checkout devel
+git merge upstream/devel
+(git add .  -- may be needed)
+git push
+
+do pulls on all other machines

@@ -1,0 +1,5 @@
+
+make distclean (remove old compilation)
+./configure --CC=icc --FC=mpi90    (may choose different compilers)
+make
+make install
