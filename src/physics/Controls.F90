@@ -39,9 +39,6 @@ Module Controls
     Logical :: ohmic_heating = .true.
     Logical :: advect_reference_state = .false.  ! Set to true to advect the reference state
                                                 ! Generally only do this if reference state is nonadiabatic
-    Logical :: bwh_so = .false.		   ! Turn SO effect on or off (default is off)
-    Real*8  :: bwh_so_omega = 0d0	   ! Magnitude of the SO effect (default is 0.0)    
-    Real*8  :: bwh_so_inclination = 0d0	   ! Direction of the SO effect (default is 0.0)    
 
 
     ! --- This flag determines if the code is run in benchmark mode
@@ -51,10 +48,16 @@ Module Controls
     Integer :: benchmark_report_interval = -1      ! and report interval in Benchmarking.F90 (for debugging)
 
     Logical, Public, Save :: Stable_flag =.false.
+
+    ! --- This flag determines if and how the code is run with the SO effect
+    Logical :: bwh_so = .false.		   ! Turn SO effect on or off (default is off)
+    Real*8  :: bwh_so_omega = 0d0	   ! Magnitude of the SO effect (default is 0.0)    
+    Real*8  :: bwh_so_inclination = 0d0	   ! Direction of the SO effect (default is 0.0)    
+
     Namelist /Physical_Controls_Namelist/ magnetism, nonlinear, rotation, lorentz_forces, &
                 & viscous_heating, ohmic_heating, advect_reference_state, benchmark_mode, &
                 & benchmark_integration_interval, benchmark_report_interval, stable_flag, &
-                & momentum_advection
+                & momentum_advection, bwh_so, bwh_so_omega, bwh_so_inclination
 
     !///////////////////////////////////////////////////////////////////////////
     !   Temporal Controls
