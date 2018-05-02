@@ -1,7 +1,8 @@
 
 Once happy with edits:
 
-Change to ~/Rayleigh (root directory, NOT in Rayleigh/src for example)
-git add . (compiles the list of changes)
-git commit (brings up a text editor that allows comments about changes)
-git push (shoves it back to master git repository)
+Change to ~/Rayleigh 		(root directory, NOT in Rayleigh/src for example)
+git remote -v			(lists which repository this was cloned from <remote>, and which repository remote was forked from <upstream>)
+git add . 			(compiles the list of changes, single files can be added using git add <file>)
+git commit 			(brings up a text editor that allows comments about changes)
+git push <remote> <branch>	(shoves the changes back to the repository listed as <remote> for the listed <branch>)
