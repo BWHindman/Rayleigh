@@ -1,0 +1,11 @@
+
+To create a new branch
+git checkout -b <new branch>		(Its a good idea to make all changes to a new branch)
+git add .
+git commit
+git push origin <new branch>
+
+
+To delete an obsolete branch
+git push --delete origin <branch>	(This will delete the branch from the GitHub repository)
+

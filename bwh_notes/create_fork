@@ -1,0 +1,27 @@
+
+On GitHub navigate to the repository that you wish to fork
+Hit the fork button 			(upper right-hand side of the page)
+Login to a local machine 		(such as RC.colorado.edu) 
+git clone <url>				(The url is supplied by the page of the fork repository)
+git remote add upstream <url>		(The url is supplied by the page of the original repository)
+
+To create a new branch
+git checkout -b <new branch>		(Its a good idea to make all changes to a new branch)
+git add .				(Sequence to push branch to the GitHub repository)
+git commit
+git push origin <new branch>
+
+To push changes to the fork
+git add .
+git commit
+git push origin <new branch>
+
+
+To update from upstream
+git pull upstream <branch>		(This is pull changes made to the original repository for the specified branch
+git push origin branch			(This will update the fork with those changes)
+
+
+To delete an obsolete branch
+git push --delete origin <branch>	(This will delete the branch from the GitHub repository)
+
