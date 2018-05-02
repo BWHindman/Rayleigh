@@ -39,6 +39,10 @@ Module Controls
     Logical :: ohmic_heating = .true.
     Logical :: advect_reference_state = .false.  ! Set to true to advect the reference state
                                                 ! Generally only do this if reference state is nonadiabatic
+    Logical :: bwh_so = .false.		   ! Turn SO effect on or off (default is off)
+    Real*8  :: bwh_so_omega = 0d0	   ! Magnitude of the SO effect (default is 0.0)    
+    Real*8  :: bwh_so_inclination = 0d0	   ! Direction of the SO effect (default is 0.0)    
+
 
     ! --- This flag determines if the code is run in benchmark mode
     !     0 (default) is no benchmarking.  1-5 are various accuracy benchmarks (see documentation)
