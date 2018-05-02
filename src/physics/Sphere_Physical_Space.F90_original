@@ -592,7 +592,6 @@ Contains
     Subroutine Momentum_Advection_Theta()
         Implicit None
         Integer :: t, r,k
-        Real *8 :: bwh_cosphi, bwh_so_coeff
         ! Build (radius/sintheta)[u dot grad u]_theta
 
         ! First add all the terms that get multiplied by u_theta
@@ -643,21 +642,6 @@ Contains
             !$OMP END PARALLEL DO
         Endif
 
-        !===================================================================
-        !==================== BWH 4/5/2018: SO effect                        
-	!====================     Corrections:  Added parentheses around two_pi*k to avoid the chance of integer arithmetric
-        If (bwh_so) Then
-            bwh_so_coeff = 0.5*ref%Coriolis_Coeff * bwh_so_omega * SIN(bwh_so_inclination * two_pi / 360.0)
-            !$OMP PARALLEL DO PRIVATE(t,r,k)
-            DO_IDX
-                bwh_cosphi = COS((two_pi*k)/n_phi + 0.5*ref%Coriolis_Coeff * simulation_time)
-                RHSP(IDX,pvar) = RHSP(IDX,pvar) - bwh_so_coeff*radius(r)*bwh_cosphi 
-            END_DO
-            !$OMP END PARALLEL DO
-        Endif
-        !===================================================================
-
-
         ! Multiply advection/coriolis pieces by rho
         !$OMP PARALLEL DO PRIVATE(t,r,k)
         DO_IDX
@@ -692,7 +676,6 @@ Contains
     Subroutine Momentum_Advection_Phi()
         Implicit None
         Integer :: t, r, k
-        Real *8 :: bwh_sinphi, bwh_so_coeff
         ! Build (radius/sintheta)[u dot grad u]_phi
 
         ! terms multiplied by u_theta
@@ -733,21 +716,6 @@ Contains
             END_DO
             !$OMP END PARALLEL DO
         Endif
-
-        !===================================================================
-        !==================== BWH 4/5/2018: SO effect                        
-	!====================     Corrections:  pvar -> zvar   4/20/2018
-	!====================			Added parentheses around two_pi*k to avoid the chance of integer arithmetric
-        If (bwh_so) Then
-            bwh_so_coeff = 0.5*ref%Coriolis_Coeff * bwh_so_omega * SIN(bwh_so_inclination * two_pi / 360.0)
-            !$OMP PARALLEL DO PRIVATE(t,r,k)
-            DO_IDX
-                bwh_sinphi = SIN((two_pi*k)/n_phi + 0.5*ref%Coriolis_Coeff * simulation_time)
-                RHSP(IDX,zvar) = RHSP(IDX,zvar) + bwh_so_coeff*radius(r)*costheta(t)*bwh_sinphi
-            END_DO
-            !$OMP END PARALLEL DO
-        Endif
-        !======================================================
 
         ! Multiply advection/coriolis pieces by rho
         !$OMP PARALLEL DO PRIVATE(t,r,k)
