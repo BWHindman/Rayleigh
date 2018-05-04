@@ -3,16 +3,14 @@ To update changes made on Nick's repositories:
 
 login on some machine
 git remote -v				(Shows the <origin> of the cloned repository and which upstream respository that was originally forked)
-git pull				(Pull down all changes from the upstream repository)
-git checkout <branch>			(Move to the local branch to be updated)
-git merge upstream/<branch>		(This merges the upsteam changes with the local changes for the common branch)
-(git add .  -- may be needed)
-(git commit -- may be needed)
-git push				(Push all the changes back to the remote <origin>
-
+git pull upstream <branch1>		(Pull down all changes from the upstream repository for the specified branch)
+git push origin <branch1>		(This updates my repository on GitHub)
 do pulls on all other machines
 
 
-Or if you want to update a single branch
-git pull upstream <branch>		(Individual branches can be updated with git pull upstream <branch>)
-git push origin <branch>
+To afterward merge these changes into other local branches 
+git checkout <branch2>
+git merge <branch1>			(Merges the changes in branch1 into branch2)
+git push origin <branch2>		(Update the GitHub repository)
+
+
