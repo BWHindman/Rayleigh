@@ -539,10 +539,14 @@ Contains
         Enddo
 
         DeAllocate(dtmparr, gravity)
-                       
+
+	! These are to enable the pseudo-incompressible mode.  However, the density variation in coefficients above
+	! have NOT been considered or modified.  Hence, you can use this reference type with the pseudo-incompressible mode (yet).                       
         ref%rho_star     = ref%density
         ref%dlnrho_star  = ref%dlnrho
         ref%d2lnrho_star = ref%d2lnrho
+        
+        ! The zero in the entropy is set at the upper surface (entropy is nondimensionalized by c_P)
         ref%entropy      = (log(ref%Temperature/ref%Temperature(1)) - (Specific_Heat_Ratio - 1)*log(ref%density/ref%density(1)))/Specific_Heat_Ratio
 
     End Subroutine Polytropic_ReferenceND
@@ -921,6 +925,16 @@ Contains
         Do i = 1, n_active_scalars
             ra_constants(12+(i-1)*2) = -Chi_A_Rayleigh_Number(i)/Chi_A_Prandtl_Number(i)
         Enddo
+        
+        ! These are to enable the pseudo-incompressible mode.  However, the density variation in coefficients above
+	! have NOT been considered or modified.  Hence, you can use this reference type with the pseudo-incompressible mode (yet).                       
+        ref%rho_star     = ref%density
+        ref%dlnrho_star  = ref%dlnrho
+        ref%d2lnrho_star = ref%d2lnrho
+        
+        ! The zero in the entropy is set at the upper surface (entropy is nondimensionalized by c_P)
+        ref%entropy      = (log(ref%Temperature/ref%Temperature(1)) - (Specific_Heat_Ratio - 1)*log(ref%density/ref%density(1)))/Specific_Heat_Ratio
+
 
         DeAllocate(gravity, zeta, dzeta, d2zeta, dlnzeta, d2lnzeta, flux_nonrad, partial_heating)
     End Subroutine Polytropic_ReferenceND_General
@@ -1013,26 +1027,26 @@ Contains
         Ref%dlnT = -(c1*d/Radius**2)/zeta
 
         Ref%dsdr = volume_specific_heat * (Ref%dlnT - (Specific_Heat_Ratio - 1.0d0) * Ref%dlnrho)
-
-        If (pseudo_incompressible) Then
-            ref%entropy(:) = pressure_specific_heat*log(ref%temperature/ref%temperature(1))
-            ref%entropy(:) = ref%entropy-(specific_heat_ratio-1)*log(ref%density(:)/ref%density(1))
-            ref%rho_star(:) = ref%density(:)*exp(entropy(:)/Pressure_Specific_Heat)
-            !TODO (PSI) : Set correct expressions for logarithmic derivatives below
-            ref%dlnrho_star(:) = Zero
-            ref%d2lnrho_star(:) = Zero
+	ref%entropy(:) = log(ref%temperature/ref%temperature(1)) - (specific_heat_ratio-1)*log(ref%density(:)/ref%density(1))
+        ref%entropy(:) = ref%entropy*(pressure_specific_heat/specific_heat_ratio)
+            
+        If (pseudo_incompressible) Then          
+            ref%rho_star(:) = ref%density(:)*exp(ref%entropy(:)/Pressure_Specific_Heat)
+            ref%dlnrho_star(:) = ref%dlnrho + ref%dsdr/pressure_specific_heat
+            ref%d2lnrho_star(:) = ((poly_n+1)/(n*specific_heat_ratio))*ref%d2lnrho
         Else
             ref%rho_star(:) = ref%density(:)
             ref%dlnrho_star(:) = ref%dlnrho(:)
-            ref%d2lnrho_star(:) = ref%d2lnrho_star(:)
+            ref%d2lnrho_star(:) = ref%d2lnrho(:)
         Endif
 
 
+        Ref%Buoyancy_Coeff = gravity/Pressure_Specific_Heat*ref%rho_star
 
-        Ref%Buoyancy_Coeff = gravity/Pressure_Specific_Heat*ref%density
-
+	! If run with active scalars and pseudo-incompressible = False, rho_star = density (so all is well).
+	! I think running with active scalars AND pseudo-incompressible will work fine as well, but someone needs to think and check the equation
         do i = 1, n_active_scalars
-          ref%chi_buoyancy_coeff(i,:) = -gravity/pressure_specific_heat*ref%density
+          ref%chi_buoyancy_coeff(i,:) = -gravity/pressure_specific_heat*ref%rho_star
         end do
 
         Deallocate(zeta, gravity)
@@ -1040,11 +1054,11 @@ Contains
         Call Initialize_Reference_Heating()
 
         ref%Coriolis_Coeff        = 2.0d0*Angular_velocity
-        ref%dpdr_w_term(:)        = ref%density
-        ref%pressure_dwdr_term(:) = -1.0d0*ref%density
+        ref%dpdr_w_term(:)        = ref%rho_star
+        ref%pressure_dwdr_term(:) = -1.0d0*ref%rho_star
         ref%viscous_amp(1:N_R)    = 2.0d0/ref%temperature(1:N_R)
         If (magnetism) Then
-            ref%Lorentz_Coeff = 1.0d0/four_pi
+            ref%Lorentz_Coeff = (1.0d0/four_pi)*ref%rho_star/ref%density  ! For anelastic mode this is just 1/4pi
             ref%ohmic_amp(1:N_R) = ref%lorentz_coeff/ref%density(1:N_R)/ref%temperature(1:N_R)
         Else
             ref%Lorentz_Coeff = 0.0d0
