@@ -177,6 +177,7 @@ Module PDE_Coefficients
 
     Real*8, Allocatable :: nu(:), kappa(:), eta(:)
     Real*8, Allocatable :: dlnu(:), dlnkappa(:), dlneta(:)
+    Real*8, Allocatable :: nu_star(:), dlnu_star(:)
     real*8, allocatable :: kappa_chi_a(:,:), kappa_chi_p(:,:)
     real*8, allocatable :: dlnkappa_chi_a(:,:), dlnkappa_chi_p(:,:)
 
@@ -371,6 +372,11 @@ Contains
         ref%temperature  = 1.0d0
         ref%dlnT         = 0.0d0
         ref%dsdr         = 0.0d0
+        
+        ref%rho_star     = 1.0d0
+        ref%dlnrho_star  = 0.0d0
+        ref%d2lnrho_star = 0.0d0
+        ref%entropy      = 0.0d0
 
         amp = Rayleigh_Number/Prandtl_Number
 
@@ -533,6 +539,11 @@ Contains
         Enddo
 
         DeAllocate(dtmparr, gravity)
+                       
+        ref%rho_star     = ref%density
+        ref%dlnrho_star  = ref%dlnrho
+        ref%d2lnrho_star = ref%d2lnrho
+        ref%entropy      = (log(ref%Temperature/ref%Temperature(1)) - (Specific_Heat_Ratio - 1)*log(ref%density/ref%density(1)))/Specific_Heat_Ratio
 
     End Subroutine Polytropic_ReferenceND
 
