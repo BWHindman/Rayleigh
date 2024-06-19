@@ -1840,6 +1840,8 @@ Contains
 
 
         Call Initialize_Diffusivity(nu,dlnu,nu_top,nu_type,nu_power,5,3,11)
+        nu_star = nu*ref%density/ref%rho_star
+        dlnu_star = dlnu + ref%dlnrho - ref%dlnrho_star
         Call Initialize_Diffusivity(kappa,dlnkappa,kappa_top,kappa_type,kappa_power,6,5,12)
         do i = 1, n_active_scalars
           Call Initialize_Diffusivity(kappa_chi_a(i,:),dlnkappa_chi_a(i,:),&
@@ -1923,6 +1925,8 @@ Contains
 
         Allocate(nu(1:N_r))
         Allocate(dlnu(1:N_r))
+        Allocate(nu_star(1:N_r))
+        Allocate(dlnu_star(1:N_r))
         Allocate(kappa(1:N_r))
         Allocate(dlnkappa(1:N_r))
         Allocate(kappa_chi_a(n_active_scalars,1:N_r))
@@ -2015,11 +2019,13 @@ Contains
         Implicit None
 
         If (Allocated(nu))           DeAllocate(nu)
+        If (Allocated(nu_star))      DeAllocate(nu_star)
         If (Allocated(kappa))        DeAllocate(kappa)
         If (Allocated(kappa_chi_a))  DeAllocate(kappa_chi_a)
         If (Allocated(kappa_chi_p))  DeAllocate(kappa_chi_p)
         If (Allocated(eta))          DeAllocate(eta)
         If (Allocated(dlnu))         DeAllocate(dlnu)
+        If (Allocated(dlnu_star))    DeAllocate(dlnu_star)
         If (Allocated(dlnkappa))     DeAllocate(dlnkappa)
         If (Allocated(dlnkappa_chi_a)) DeAllocate(dlnkappa_chi_a)
         If (Allocated(dlnkappa_chi_p)) DeAllocate(dlnkappa_chi_p)
@@ -2069,22 +2075,22 @@ Contains
         ! W Coefficients for W Equation
         Allocate(W_Diffusion_Coefs_0(1:N_R))
         Allocate(W_Diffusion_Coefs_1(1:N_R))
-        W_Diffusion_Coefs_0 =     -nu*(4.0d0/3.0d0)*( dlnu*ref%dlnrho + ref%d2lnrho + ref%dlnrho/radius + &
-            & 3.0d0*dlnu/radius )
-        W_Diffusion_Coefs_1 = nu*(2.0d0*dlnu-ref%dlnrho/3.0d0)
+        W_Diffusion_Coefs_0 =     -nu_star*(4.0d0/3.0d0)*( dlnu_star*ref%dlnrho_star + ref%d2lnrho_star + ref%dlnrho_star/radius + &
+            & 3.0d0*dlnu_star/radius )
+        W_Diffusion_Coefs_1 = nu_star*(2.0d0*dlnu_star-ref%dlnrho_star/3.0d0)
 
         !/////////////////////////////////////
         ! W Coefficients for dWdr equation
         Allocate(DW_Diffusion_Coefs_0(1:N_R))
         Allocate(DW_Diffusion_Coefs_1(1:N_R))
         Allocate(DW_Diffusion_Coefs_2(1:N_R))
-        DW_Diffusion_Coefs_2 = dlnu-ref%dlnrho
-        DW_Diffusion_Coefs_1 = ref%d2lnrho+(2.0d0)/radius*ref%dlnrho+2.0d0/radius*dlnu+dlnu*ref%dlnrho
-        DW_Diffusion_Coefs_0 = 2.0d0*ref%dlnrho/3.0d0+dlnu      !pulled out 2/r since that doesn't depend on rho or nu
+        DW_Diffusion_Coefs_2 = dlnu_star-ref%dlnrho_star
+        DW_Diffusion_Coefs_1 = ref%d2lnrho_star+(2.0d0)/radius*ref%dlnrho_star+2.0d0/radius*dlnu_star+dlnu_star*ref%dlnrho_star
+        DW_Diffusion_Coefs_0 = 2.0d0*ref%dlnrho_star/3.0d0+dlnu_star      !pulled out 2/r since that doesn't depend on rho or nu
             !include the factor of nu in these coefficients (and add minus sign for coefs 1 and 0)
-        DW_Diffusion_Coefs_2 =  DW_Diffusion_Coefs_2*nu
-        DW_Diffusion_Coefs_1 = -DW_Diffusion_Coefs_1*nu
-        DW_Diffusion_Coefs_0 = -DW_Diffusion_Coefs_0*nu
+        DW_Diffusion_Coefs_2 =  DW_Diffusion_Coefs_2*nu_star
+        DW_Diffusion_Coefs_1 = -DW_Diffusion_Coefs_1*nu_star
+        DW_Diffusion_Coefs_0 = -DW_Diffusion_Coefs_0*nu_star
         !//////////////////////////////////////// +
         ! S Coefficients for S Equation
         Allocate(S_Diffusion_Coefs_1(1:N_R))
@@ -2099,9 +2105,9 @@ Contains
         ! Z Coefficients for the Z Equation
         Allocate(Z_Diffusion_Coefs_0(1:N_R))
         Allocate(Z_Diffusion_Coefs_1(1:N_R))
-        Z_Diffusion_Coefs_0 = -nu*( 2.0d0*dlnu/radius + ref%dlnrho*dlnu + &
-            & ref%d2lnrho+2.0d0*ref%dlnrho/radius)
-        Z_Diffusion_Coefs_1 = nu*(dlnu-ref%dlnrho)
+        Z_Diffusion_Coefs_0 = -nu_star*( 2.0d0*dlnu_star/radius + ref%dlnrho_star*dlnu_star + &
+            & ref%d2lnrho_star+2.0d0*ref%dlnrho_star/radius)
+        Z_Diffusion_Coefs_1 = nu_star*(dlnu_star-ref%dlnrho_star)
 
         !////////////////////////////////////////
         ! A (vector potential) Coefficients
@@ -2124,7 +2130,7 @@ Contains
         ! or buoyancy (which has already been set in each subroutine)
 
         ra_constants(1) = ref%Coriolis_Coeff
-        ra_constants(3) = ref%dpdr_w_term(1)/ref%density(1)
+        ra_constants(3) = ref%dpdr_w_term(1)/ref%rho_star(1)
         ra_constants(4) = ref%Lorentz_Coeff
         ra_constants(8) = ref%viscous_amp(1)*ref%temperature(1)/2.0d0
         ra_constants(9) = ref%ohmic_amp(1)*ref%density(1)*ref%temperature(1)
