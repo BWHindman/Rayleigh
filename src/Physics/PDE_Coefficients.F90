@@ -541,7 +541,7 @@ Contains
         DeAllocate(dtmparr, gravity)
 
 	! These are to enable the pseudo-incompressible mode.  However, the density variation in coefficients above
-	! have NOT been considered or modified.  Hence, you can use this reference type with the pseudo-incompressible mode (yet).                       
+	! have NOT been considered or modified.  Hence, you can NOT use this reference type with the pseudo-incompressible mode (yet).                       
         ref%rho_star     = ref%density
         ref%dlnrho_star  = ref%dlnrho
         ref%d2lnrho_star = ref%d2lnrho
@@ -927,7 +927,7 @@ Contains
         Enddo
         
         ! These are to enable the pseudo-incompressible mode.  However, the density variation in coefficients above
-	! have NOT been considered or modified.  Hence, you can use this reference type with the pseudo-incompressible mode (yet).                       
+	! have NOT been considered or modified.  Hence, you can NOT use this reference type with the pseudo-incompressible mode (yet).                       
         ref%rho_star     = ref%density
         ref%dlnrho_star  = ref%dlnrho
         ref%d2lnrho_star = ref%d2lnrho
@@ -1029,6 +1029,7 @@ Contains
         Ref%dsdr = volume_specific_heat * (Ref%dlnT - (Specific_Heat_Ratio - 1.0d0) * Ref%dlnrho)
 	ref%entropy(:) = log(ref%temperature/ref%temperature(1)) - (specific_heat_ratio-1)*log(ref%density(:)/ref%density(1))
         ref%entropy(:) = ref%entropy*(pressure_specific_heat/specific_heat_ratio)
+        ! The value of the entropy at the upper surface is set to zero
             
         If (pseudo_incompressible) Then          
             ref%rho_star(:) = ref%density(:)*exp(ref%entropy(:)/Pressure_Specific_Heat)
