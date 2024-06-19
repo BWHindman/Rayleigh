@@ -58,7 +58,7 @@ Module PDE_Coefficients
 
         Real*8 :: Coriolis_Coeff ! Multiplies z_hat x u in momentum eq.
         Real*8 :: Lorentz_Coeff ! Multiplies (Del X B) X B in momentum eq.
-        Real*8, Allocatable :: Buoyancy_Coeff(:) ! Multiplies {S,T} in momentum eq. ..typically = gravity/cp
+        Real*8, Allocatable :: Buoyancy_Coeff(:) ! Multiplies {S,T} in momentum eq. ..typically = gravity*rho/cp
         Real*8, Allocatable :: chi_buoyancy_coeff(:,:) ! Multiplies Chis in momentum eq.
         Real*8, Allocatable :: dpdr_w_term(:) ! Multiplies d_by_dr{P/rho} in momentum eq.
         Real*8, Allocatable :: pressure_dwdr_term(:) ! Multiplies l(l+1)/r^2 (P/rho) in Div dot momentum eq.
@@ -377,6 +377,8 @@ Contains
         ref%dlnrho_star  = 0.0d0
         ref%d2lnrho_star = 0.0d0
         ref%entropy      = 0.0d0
+        ! The coefficients that appear below have not been modified for pseudo-incompressibility.
+        ! Hence, this reference type is incompatible with the pseudo-incompressible approximation
 
         amp = Rayleigh_Number/Prandtl_Number
 
@@ -546,7 +548,7 @@ Contains
         ref%dlnrho_star  = ref%dlnrho
         ref%d2lnrho_star = ref%d2lnrho
         
-        ! The zero in the entropy is set at the upper surface (entropy is nondimensionalized by c_P)
+        ! The zero in the entropy is set at the upper surface (entropy is nondimensionalized by c_P). Entropy expression is for an ideal gas.
         ref%entropy      = (log(ref%Temperature/ref%Temperature(1)) - (Specific_Heat_Ratio - 1)*log(ref%density/ref%density(1)))/Specific_Heat_Ratio
 
     End Subroutine Polytropic_ReferenceND
@@ -932,7 +934,7 @@ Contains
         ref%dlnrho_star  = ref%dlnrho
         ref%d2lnrho_star = ref%d2lnrho
         
-        ! The zero in the entropy is set at the upper surface (entropy is nondimensionalized by c_P)
+        ! The zero in the entropy is set at the upper surface (entropy is nondimensionalized by c_P). Entropy expression is for an ideal gas.
         ref%entropy      = (log(ref%Temperature/ref%Temperature(1)) - (Specific_Heat_Ratio - 1)*log(ref%density/ref%density(1)))/Specific_Heat_Ratio
 
 
@@ -1029,11 +1031,11 @@ Contains
         Ref%dsdr = volume_specific_heat * (Ref%dlnT - (Specific_Heat_Ratio - 1.0d0) * Ref%dlnrho)
 	ref%entropy(:) = log(ref%temperature/ref%temperature(1)) - (specific_heat_ratio-1)*log(ref%density(:)/ref%density(1))
         ref%entropy(:) = ref%entropy*(pressure_specific_heat/specific_heat_ratio)
-        ! The value of the entropy at the upper surface is set to zero
+        ! The value of the entropy at the upper surface is set to zero. Entropy expression is for an ideal gas.
             
         If (pseudo_incompressible) Then          
             ref%rho_star(:) = ref%density(:)*exp(ref%entropy(:)/Pressure_Specific_Heat)
-            ref%dlnrho_star(:) = ref%dlnrho + ref%dsdr/pressure_specific_heat
+            ref%dlnrho_star(:) = ref%dlnrho + ref%dsdr(:)/pressure_specific_heat
             ref%d2lnrho_star(:) = ((poly_n+1)/(n*specific_heat_ratio))*ref%d2lnrho
         Else
             ref%rho_star(:) = ref%density(:)
@@ -1290,6 +1292,8 @@ Contains
         ref%density(:) = ra_functions(:,1)
         ref%dlnrho(:)  = ra_functions(:,8)
         ref%d2lnrho(:) = ra_functions(:,9)
+	
+        
         ref%buoyancy_coeff(:) = ra_constants(2)*ra_functions(:,2)
         Do i = 1, n_active_scalars
             ref%chi_buoyancy_coeff(i,:) = ra_constants(12+(i-1)*2)*ra_functions(:,2)
@@ -1297,7 +1301,24 @@ Contains
 
         ref%temperature(:) = ra_functions(:,4)
         ref%dlnT(:) = ra_functions(:,10)
+        ref%dsdr(:)     = ra_constants(11)*ra_functions(:,14)
+        ref%entropy(1) = 0.0
+        geofac = (Radius(1)**3 - Radius(N_R)**3)/3d0
+        Do i = 2, N_R
+            ref%entropy(i) = ref%entropy(i-1) - geofac*ref%dsdr(i)*radial_integral_weights(i)/Radius(i)**2           
+        Enddo
+ 
 
+        If (pseudo_incompressible) Then
+            ref%rho_star(:) = ref%density(:)*exp(ref%entropy(:)/pressure_specific_heat)
+            ref%dlnrho_star(:) = ref%dlnrho + ref%dsdr(:)/pressure_specific_heat
+            Call log_deriv(ref%dlnrho_star(:), ref%d2lnrho_star(:), no_log=.true.)
+        Else
+            ref%rho_star(:) = ref%density(:)
+            ref%dlnrho_star(:)  = ref%dlnrho(:)
+            ref%d2lnrho_star(:) = ref%d2lnrho(:)
+        Endif
+            
         If (abs(Luminosity) .gt. heating_eps) Then
             ra_constants(10) = Luminosity
         Endif
@@ -1313,13 +1334,13 @@ Contains
             ref%Coriolis_Coeff  = 2.0d0*Angular_velocity
             ra_constants(1) = ref%Coriolis_Coeff
         Endif
-        ref%dpdr_w_term(:) = ra_constants(3)*ra_functions(:,1)
+        ref%dpdr_w_term(:) = ra_constants(3)*ra_functions(:,1)*ref%rho_star(:)/ref%density(:)
         ref%pressure_dwdr_term(:)= - ref%dpdr_w_term(:) 
         ref%viscous_amp(:) = 2.0/ref%temperature(:)*ra_constants(8)
-        ref%Lorentz_Coeff = ra_constants(4)
+        ref%Lorentz_Coeff = ra_constants(4)*ref%rho_star(:)/ref%density(:)
         ref%ohmic_amp(:) = ra_constants(9)/(ref%density(:)*ref%temperature(:))
 
-        ref%dsdr(:)     = ra_constants(11)*ra_functions(:,14)
+
 
     End Subroutine Get_Custom_Reference
 
@@ -1714,10 +1735,14 @@ Contains
         If (allocated(ref%Density)) DeAllocate(ref%density)
         If (allocated(ref%dlnrho)) DeAllocate(ref%dlnrho)
         If (allocated(ref%d2lnrho)) DeAllocate(ref%d2lnrho)
+        If (allocated(ref%rho_star)) DeAllocate(ref%rho_star)
+        If (allocated(ref%dlnrho_star)) DeAllocate(ref%dlnrho_star)
+        If (allocated(ref%d2lnrho_star)) DeAllocate(ref%d2lnrho_star)
 
         If (allocated(ref%Temperature)) DeAllocate(ref%Temperature)
         If (allocated(ref%dlnT)) DeAllocate(ref%dlnT)
 
+        If (allocated(ref%entropy)) DeAllocate(ref%)
         If (allocated(ref%dsdr)) DeAllocate(ref%dsdr)
 
         If (allocated(ref%heating)) DeAllocate(ref%heating)
@@ -1739,6 +1764,8 @@ Contains
         If (allocated(kappa)) DeAllocate(kappa)
         If (allocated(eta)) DeAllocate(eta)
         If (allocated(dlnu)) DeAllocate(dlnu)
+        If (allocated(nu_star)) DeAllocate(nu_star)
+        If (allocated(dlnu_star)) DeAllocate(dlnu_star)
         If (allocated(dlnkappa)) DeAllocate(dlnkappa)
         If (allocated(dlneta)) DeAllocate(dlneta)
         If (allocated(kappa_chi_a)) DeAllocate(kappa_chi_a)
